@@ -159,7 +159,7 @@ func (c *Client) GetDailyGroupedV2(
 	date *time.Time,
 	unadjusted *bool) (*DailyGroupedV2, error) {
 
-	u, err := url.Parse(fmt.Sprintf(groupedV2URL, base, date.Unix()*1000))
+	u, err := url.Parse(fmt.Sprintf(groupedV2URL, base, date.Format("2006-01-02")))
 	if err != nil {
 		return nil, err
 	}
