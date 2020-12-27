@@ -170,6 +170,21 @@ type HistoricAggregatesV2 struct {
 	Ticks        []AggTick `json:"results"`
 }
 
+type DailyGroupedV2 struct {
+	QueryCount   int  `json:"queryCount"`
+	ResultsCount int  `json:"resultsCount"`
+	Adjusted     bool `json:"adjusted"`
+	Results      struct {
+		T string `json:"T"`
+		V string `json:"v"`
+		O string `json:"o"`
+		C string `json:"c"`
+		H string `json:"h"`
+		L string `json:"l"`
+		t string `json:"t"`
+	} `json:"results"`
+}
+
 type GetHistoricTradesParams struct {
 	Offset int64 `json:"offset"`
 	Limit  int64 `json:"limit"`

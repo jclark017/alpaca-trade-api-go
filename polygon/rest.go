@@ -16,13 +16,14 @@ import (
 )
 
 const (
-	aggURL      = "%v/v1/historic/agg/%v/%v"
-	aggv2URL    = "%v/v2/aggs/ticker/%v/range/%v/%v/%v/%v"
-	tradesURL   = "%v/v1/historic/trades/%v/%v"
-	tradesv2URL = "%v/v2/ticks/stocks/trades/%v/%v"
-	quotesURL   = "%v/v1/historic/quotes/%v/%v"
-	quotesv2URL = "%v/v2/ticks/stocks/nbbo/%v/%v"
-	exchangeURL = "%v/v1/meta/exchanges"
+	aggURL       = "%v/v1/historic/agg/%v/%v"
+	aggv2URL     = "%v/v2/aggs/ticker/%v/range/%v/%v/%v/%v"
+	tradesURL    = "%v/v1/historic/trades/%v/%v"
+	tradesv2URL  = "%v/v2/ticks/stocks/trades/%v/%v"
+	quotesURL    = "%v/v1/historic/quotes/%v/%v"
+	quotesv2URL  = "%v/v2/ticks/stocks/nbbo/%v/%v"
+	exchangeURL  = "%v/v1/meta/exchanges"
+	groupedV2URL = "%v/v2/aggs/grouped/locale/us/market/stocks/%v"
 )
 
 var (
@@ -111,7 +112,7 @@ func (c *Client) GetHistoricAggregates(
 	return agg, nil
 }
 
-// GetHistoricAggregates requests Polygon's v2 REST API for historic aggregates
+// GetHistoricAggregatesV2 requests Polygon's v2 REST API for historic aggregates
 // for the provided resolution based on the provided query parameters.
 func (c *Client) GetHistoricAggregatesV2(
 	symbol string,
@@ -144,6 +145,44 @@ func (c *Client) GetHistoricAggregatesV2(
 	}
 
 	agg := &HistoricAggregatesV2{}
+
+	if err = unmarshal(resp, agg); err != nil {
+		return nil, err
+	}
+
+	return agg, nil
+}
+
+// GetDailyGroupedV2 requests the polygon's REST API for grouped daily (bars) for the entire US Market
+// on the provided date
+func (c *Client) GetDailyGroupedV2(
+	date *time.Time,
+	unadjusted *bool) (*DailyGroupedV2, error) {
+
+	u, err := url.Parse(fmt.Sprintf(groupedV2URL, base, date.Unix()*1000))
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("apiKey", c.credentials.PolygonKeyID)
+
+	if unadjusted != nil {
+		q.Set("unadjusted", strconv.FormatBool(*unadjusted))
+	}
+
+	u.RawQuery = q.Encode()
+
+	resp, err := get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("status code %v", resp.StatusCode)
+	}
+
+	agg := &DailyGroupedV2{}
 
 	if err = unmarshal(resp, agg); err != nil {
 		return nil, err
