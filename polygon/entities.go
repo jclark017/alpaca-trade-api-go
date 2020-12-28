@@ -170,19 +170,26 @@ type HistoricAggregatesV2 struct {
 	Ticks        []AggTick `json:"results"`
 }
 
+// DailyGroupedV2 is the structure that defines
+// grouped daily data served through Polygon's v2 REST API.
 type DailyGroupedV2 struct {
-	QueryCount   int  `json:"queryCount"`
-	ResultsCount int  `json:"resultsCount"`
-	Adjusted     bool `json:"adjusted"`
-	Results      struct {
-		T string `json:"T"`
-		V string `json:"v"`
-		O string `json:"o"`
-		C string `json:"c"`
-		H string `json:"h"`
-		L string `json:"l"`
-		t string `json:"t"`
-	} `json:"results"`
+	QueryCount   int         `json:"queryCount"`
+	ResultsCount int         `json:"resultsCount"`
+	Adjusted     bool        `json:"adjusted"`
+	Results      []GroupTick `json:"results"`
+}
+
+// GroupTick is the structure that defines
+// grouped daily data for a single symbol
+// served through Polygon's v2 REST API.
+type GroupTick struct {
+	Symbol            string  `json:"T"`
+	Volume            float64 `json:"v"`
+	OpenPrice         float64 `json:"o"`
+	ClosePrice        float64 `json:"c"`
+	HighPrice         float64 `json:"h"`
+	LowPrice          float64 `json:"l"`
+	EpochMilliseconds int64   `json:"t"`
 }
 
 type GetHistoricTradesParams struct {
@@ -290,4 +297,26 @@ type StockExchange struct {
 	Mic    string `json:"mic"`
 	Name   string `json:"name"`
 	Tape   string `json:"tape"`
+}
+
+// Ticker API
+
+type Ticker struct {
+	Ticker      string `json:"ticker"`
+	Name        string `json:"name"`
+	Market      string `json:"market"`
+	Locale      string `json:"locale"`
+	Currency    string `json:"currency"`
+	Active      bool   `json:"active"`
+	PrimaryExch string `json:"primaryExch"`
+	Type        string `json:"type"`
+	Updated     string `json:"updated"`
+	URL         string `json:"url"`
+}
+
+type TickerList struct {
+	Count          int64    `json:"count"`
+	Page           int64    `json:"page"`
+	ResultsPerPage int64    `json:"perPage"`
+	Tickers        []Ticker `json:"tickers"`
 }

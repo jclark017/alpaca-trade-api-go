@@ -24,6 +24,7 @@ const (
 	quotesv2URL  = "%v/v2/ticks/stocks/nbbo/%v/%v"
 	exchangeURL  = "%v/v1/meta/exchanges"
 	groupedV2URL = "%v/v2/aggs/grouped/locale/us/market/stocks/%v"
+	tickersURL   = "%v/v2/reference/tickers"
 )
 
 var (
@@ -62,6 +63,47 @@ type Client struct {
 // credentials
 func NewClient(credentials *common.APIKey) *Client {
 	return &Client{credentials: credentials}
+}
+
+// GetTickers retrieves a list of the symbols supported
+func (c *Client) GetTickers(
+	// Todo Add parameters
+	sort string,
+	page int64,
+	active *bool) (*TickerList, error) {
+
+	u, err := url.Parse(fmt.Sprintf(tickersURL, base))
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("apiKey", c.credentials.PolygonKeyID)
+	q.Set("sort", sort)
+	q.Set("page", strconv.FormatInt(page, 10))
+
+	if active != nil {
+		q.Set("active", strconv.FormatBool(*active))
+	}
+
+	u.RawQuery = q.Encode()
+
+	resp, err := get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("status code %v", resp.StatusCode)
+	}
+
+	tckr := &TickerList{}
+
+	if err = unmarshal(resp, tckr); err != nil {
+		return nil, err
+	}
+
+	return tckr, nil
 }
 
 // GetHistoricAggregates requests Polygon's v1 REST API for historic aggregates
@@ -182,13 +224,13 @@ func (c *Client) GetDailyGroupedV2(
 		return nil, fmt.Errorf("status code %v", resp.StatusCode)
 	}
 
-	agg := &DailyGroupedV2{}
+	grp := &DailyGroupedV2{}
 
-	if err = unmarshal(resp, agg); err != nil {
+	if err = unmarshal(resp, grp); err != nil {
 		return nil, err
 	}
 
-	return agg, nil
+	return grp, nil
 }
 
 // GetHistoricTrades requests polygon's REST API for historic trades
