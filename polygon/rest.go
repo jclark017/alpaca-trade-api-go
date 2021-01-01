@@ -25,6 +25,8 @@ const (
 	exchangeURL  = "%v/v1/meta/exchanges"
 	groupedV2URL = "%v/v2/aggs/grouped/locale/us/market/stocks/%v"
 	tickersURL   = "%v/v2/reference/tickers"
+	financialsURL   = "%v/v2/reference/financials/%v"
+	symbolDetailURL   = "%v/v1/meta/symbols/%v/company"
 )
 
 var (
@@ -105,6 +107,44 @@ func (c *Client) GetTickers(
 
 	return tckr, nil
 }
+
+// GetTickerDetails returns the detail for a single symbol
+func (c *Client) GetTickerDetails(ticker string) (*SymbolDetails, error) {
+
+		u, err := url.Parse(fmt.Sprintf(symbolDetailURL, base, ticker))
+		if err != nil {
+			return nil, err
+		}
+
+		q := u.Query()
+		q.Set("apiKey", c.credentials.PolygonKeyID)
+		
+		u.RawQuery = q.Encode()
+
+		resp, err := get(u)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode >= http.StatusMultipleChoices {
+			if resp.StatusCode == 404 { //404 Just means it's not found
+				tckr := &SymbolDetails{}
+
+				tckr.HasDetail = false
+				return tckr, nil
+			}
+			return nil, fmt.Errorf("status code %v: %v", resp.StatusCode, ticker)
+		}
+
+		tckr := &SymbolDetails{}
+
+		if err = unmarshal(resp, tckr); err != nil {
+			return nil, err
+		}
+
+		tckr.HasDetail = true
+		return tckr, nil
+	}
 
 // GetHistoricAggregates requests Polygon's v1 REST API for historic aggregates
 // for the provided resolution based on the provided query parameters.
@@ -193,6 +233,54 @@ func (c *Client) GetHistoricAggregatesV2(
 	}
 
 	return agg, nil
+}
+
+// GetFinancials requests Polygon's v2 REST API for historic financials
+// for the provided period based on the provided query parameters.
+func (c *Client) GetFinancials(
+	symbol string,
+	limit int64,
+	periodType string,
+	financialSort string) (*FinancialsV2, error) {
+
+	u, err := url.Parse(fmt.Sprintf(financialsURL, base, symbol) )
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("apiKey", c.credentials.PolygonKeyID)
+
+	if limit != 0 {
+		q.Set("limit", strconv.FormatInt(limit, 10))
+	}
+
+	if periodType != "" {
+		q.Set("type", periodType)
+	}
+	
+	if periodType != "" {
+		q.Set("sort", financialSort)
+	}
+
+	u.RawQuery = q.Encode()
+
+	resp, err := get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("status code %v", resp.StatusCode)
+	}
+
+	fin := &FinancialsV2{}
+
+	if err = unmarshal(resp, fin); err != nil {
+		return nil, err
+	}
+
+	return fin, nil
 }
 
 // GetDailyGroupedV2 requests the polygon's REST API for grouped daily (bars) for the entire US Market
@@ -327,6 +415,8 @@ func (c *Client) GetHistoricTradesV2(ticker string, date string, opts *HistoricT
 
 	return trades, nil
 }
+
+
 
 // GetHistoricQuotes requests polygon's REST API for historic quotes
 // on the provided date.
